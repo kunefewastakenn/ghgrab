@@ -232,7 +232,6 @@ impl GitHubClient {
                     };
                     Err(GitHubError::RateLimitReached(level.to_string()))
                 } else if self.token.is_some() {
-                    
                     Err(GitHubError::InvalidToken)
                 } else {
                     Err(GitHubError::ApiError(format!(
@@ -551,7 +550,10 @@ mod tests {
             "Invalid token. Falling back to public API."
         );
         assert_eq!(
-            format!("{}", GitHubError::RateLimitReached("unauthenticated".to_string())),
+            format!(
+                "{}",
+                GitHubError::RateLimitReached("unauthenticated".to_string())
+            ),
             "Rate limit exceeded for unauthenticated. Consider adding a token for more limits."
         );
         assert_eq!(

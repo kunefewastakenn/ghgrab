@@ -61,7 +61,7 @@ mod tests {
         config.github_token = Some("test_token".to_string());
         let json = serde_json::to_string(&config).unwrap();
         assert!(json.contains("test_token"));
-        
+
         let deserialized: Config = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.github_token, Some("test_token".to_string()));
     }
