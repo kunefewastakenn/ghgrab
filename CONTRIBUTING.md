@@ -60,6 +60,4 @@ Please be respectful and helpful to others. We aim to keep this project a welcom
 - **Micro-animations**: Subtle transitions and toasts make the experience premium.
 - **Cross-platform**: Always test on at least two different OSs if possible.
 
----
 
-Happy coding!
