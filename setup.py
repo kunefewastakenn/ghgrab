@@ -7,7 +7,7 @@ import urllib.request
 import platform
 from pathlib import Path
 
-VERSION = "0.1.7"
+VERSION = "0.1.8"
 
 def get_platform_info():
     system = platform.system().lower()

@@ -102,7 +102,6 @@ jobs:
   publish-npm:
     needs: release
     runs-on: ubuntu-latest
-    environment: ghgrab
     permissions:
       contents: read
       id-token: write
@@ -112,8 +111,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           registry-url: https://registry.npmjs.org
+
+      - name: Update npm
+        run: npm install -g npm@latest
 
       - name: Publish to npm
         run: npm publish --provenance --access public
