@@ -7,7 +7,7 @@ import urllib.request
 import platform
 from pathlib import Path
 
-VERSION = "0.1.2"
+VERSION = "0.1.3"
 
 def get_platform_info():
     system = platform.system().lower()
@@ -70,6 +70,13 @@ class bdist_wheel(_bdist_wheel):
 
     def get_tag(self):
         python, abi, plat = super().get_tag()
+        
+        # PyPI rejects simple linux combinations; we need to use a manylinux tag
+        if plat.startswith("linux_x86_64"):
+            plat = "manylinux2014_x86_64"
+        elif plat.startswith("linux_aarch64"):
+            plat = "manylinux2014_aarch64"
+            
         # We don't use Python API, it's just a binary wrapper, so py3-none-plat
         return "py3", "none", plat
 
