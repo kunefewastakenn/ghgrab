@@ -10,7 +10,7 @@ use std::io;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::github::{GitHubClient, GitHubUrl, RepoItem};
+use crate::github::{GitHubClient, GitHubError, GitHubUrl, RepoItem};
 
 pub mod components;
 pub mod theme;
@@ -44,6 +44,7 @@ pub struct AppState {
     pub frame_count: u64,
     pub toast: Option<Toast>,
     pub ascii_mode: bool,
+    pub github_token: Option<String>,
 }
 
 impl Default for AppState {
@@ -67,6 +68,7 @@ impl AppState {
             frame_count: 0,
             toast: None,
             ascii_mode: false,
+            github_token: None,
         }
     }
 
@@ -126,7 +128,7 @@ impl AppState {
     }
 }
 
-pub async fn run_tui(initial_url: Option<String>) -> Result<()> {
+pub async fn run_tui(initial_url: Option<String>, token: Option<String>) -> Result<()> {
     install_panic_hook();
     enable_raw_mode().context("Failed to enable raw mode")?;
     let mut stdout = io::stdout();
@@ -135,8 +137,9 @@ pub async fn run_tui(initial_url: Option<String>) -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend).context("Failed to create terminal")?;
 
-    let client = GitHubClient::new()?;
+    let client = GitHubClient::new(token.clone())?;
     let mut state_init = AppState::new();
+    state_init.github_token = token;
     let has_initial_url = initial_url.is_some();
 
     if let Some(url) = initial_url {
@@ -158,80 +161,8 @@ pub async fn run_tui(initial_url: Option<String>) -> Result<()> {
             };
 
             match GitHubUrl::parse(&url) {
-                Ok(mut gh_url) => {
-                    {
-                        let mut s = state_c.lock().await;
-                        s.status_message = "Fetching contents...".to_string();
-                    }
-
-                    match client_c.fetch_contents(&gh_url.api_url()).await {
-                        Ok(mut items) => {
-                            {
-                                let mut s = state_c.lock().await;
-                                s.status_message = "Resolving LFS files...".to_string();
-                            }
-                            client_c
-                                .resolve_lfs_files(
-                                    &mut items,
-                                    &gh_url.owner,
-                                    &gh_url.repo,
-                                    &gh_url.branch,
-                                )
-                                .await;
-
-                            let mut s = state_c.lock().await;
-                            s.items = items;
-                            s.current_url = Some(gh_url);
-                            s.mode = AppMode::Browse;
-                            s.status_message = String::new();
-                            s.show_toast("Repository Loaded!".to_string(), ToastType::Success);
-                        }
-                        Err(e) => {
-                            let err_str = format!("{}", e);
-                            if gh_url.branch == "main" && err_str.contains("not found") {
-                                gh_url.branch = "master".to_string();
-                                {
-                                    let mut s = state_c.lock().await;
-                                    s.status_message = "Trying master branch...".to_string();
-                                }
-                                match client_c.fetch_contents(&gh_url.api_url()).await {
-                                    Ok(mut items) => {
-                                        {
-                                            let mut s = state_c.lock().await;
-                                            s.status_message = "Resolving LFS files...".to_string();
-                                        }
-                                        client_c
-                                            .resolve_lfs_files(
-                                                &mut items,
-                                                &gh_url.owner,
-                                                &gh_url.repo,
-                                                &gh_url.branch,
-                                            )
-                                            .await;
-
-                                        let mut s = state_c.lock().await;
-                                        s.items = items;
-                                        s.current_url = Some(gh_url);
-                                        s.mode = AppMode::Browse;
-                                        s.status_message = String::new();
-                                        s.show_toast(
-                                            "Repository Loaded!".to_string(),
-                                            ToastType::Success,
-                                        );
-                                    }
-                                    Err(e2) => {
-                                        let mut s = state_c.lock().await;
-                                        s.mode = AppMode::Input;
-                                        s.show_toast(format!("Error: {}", e2), ToastType::Error);
-                                    }
-                                }
-                            } else {
-                                let mut s = state_c.lock().await;
-                                s.mode = AppMode::Input;
-                                s.show_toast(format!("Error: {}", e), ToastType::Error);
-                            }
-                        }
-                    }
+                Ok(gh_url) => {
+                    load_repo(state_c, client_c, gh_url).await;
                 }
                 Err(e) => {
                     let mut s = state_c.lock().await;
@@ -358,88 +289,8 @@ async fn handle_input(
 
                 tokio::spawn(async move {
                     match GitHubUrl::parse(&url) {
-                        Ok(mut gh_url) => {
-                            {
-                                let mut s = state_c.lock().await;
-                                s.status_message = "Fetching contents...".to_string();
-                            }
-
-                            match client_c.fetch_contents(&gh_url.api_url()).await {
-                                Ok(mut items) => {
-                                    {
-                                        let mut s = state_c.lock().await;
-                                        s.status_message = "Resolving LFS files...".to_string();
-                                    }
-                                    client_c
-                                        .resolve_lfs_files(
-                                            &mut items,
-                                            &gh_url.owner,
-                                            &gh_url.repo,
-                                            &gh_url.branch,
-                                        )
-                                        .await;
-
-                                    let mut s = state_c.lock().await;
-                                    s.items = items;
-                                    s.current_url = Some(gh_url);
-                                    s.mode = AppMode::Browse;
-                                    s.status_message = String::new();
-                                    s.show_toast(
-                                        "Repository Loaded!".to_string(),
-                                        ToastType::Success,
-                                    );
-                                }
-                                Err(e) => {
-                                    let err_str = format!("{}", e);
-                                    if gh_url.branch == "main" && err_str.contains("not found") {
-                                        gh_url.branch = "master".to_string();
-                                        {
-                                            let mut s = state_c.lock().await;
-                                            s.status_message =
-                                                "Trying master branch...".to_string();
-                                        }
-                                        match client_c.fetch_contents(&gh_url.api_url()).await {
-                                            Ok(mut items) => {
-                                                {
-                                                    let mut s = state_c.lock().await;
-                                                    s.status_message =
-                                                        "Resolving LFS files...".to_string();
-                                                }
-                                                client_c
-                                                    .resolve_lfs_files(
-                                                        &mut items,
-                                                        &gh_url.owner,
-                                                        &gh_url.repo,
-                                                        &gh_url.branch,
-                                                    )
-                                                    .await;
-
-                                                let mut s = state_c.lock().await;
-                                                s.items = items;
-                                                s.current_url = Some(gh_url);
-                                                s.mode = AppMode::Browse;
-                                                s.status_message = String::new();
-                                                s.show_toast(
-                                                    "Repository Loaded!".to_string(),
-                                                    ToastType::Success,
-                                                );
-                                            }
-                                            Err(e2) => {
-                                                let mut s = state_c.lock().await;
-                                                s.mode = AppMode::Input;
-                                                s.show_toast(
-                                                    format!("Error: {}", e2),
-                                                    ToastType::Error,
-                                                );
-                                            }
-                                        }
-                                    } else {
-                                        let mut s = state_c.lock().await;
-                                        s.mode = AppMode::Input;
-                                        s.show_toast(format!("Error: {}", e), ToastType::Error);
-                                    }
-                                }
-                            }
+                        Ok(gh_url) => {
+                            load_repo(state_c, client_c, gh_url).await;
                         }
                         Err(e) => {
                             let mut s = state_c.lock().await;
@@ -563,15 +414,97 @@ async fn handle_input(
     Ok(false)
 }
 
+async fn load_repo(state: Arc<Mutex<AppState>>, client: GitHubClient, mut gh_url: GitHubUrl) {
+    let state_c = state.clone();
+    let mut current_client = client;
+
+    {
+        let mut s = state_c.lock().await;
+        s.status_message = "Fetching contents...".to_string();
+        s.mode = AppMode::Searching;
+    }
+
+    let mut result = current_client.fetch_contents(&gh_url.api_url()).await;
+
+    // Auth Fallback
+    if let Err(e) = &result {
+        if let Some(GitHubError::InvalidToken) = e.downcast_ref::<GitHubError>() {
+            {
+                let mut s = state_c.lock().await;
+                s.show_toast(
+                    "Invalid token! Falling back to public repositories.".to_string(),
+                    ToastType::Warning,
+                );
+            }
+            if let Ok(no_auth_client) = GitHubClient::new(None) {
+                current_client = no_auth_client;
+                result = current_client.fetch_contents(&gh_url.api_url()).await;
+            }
+        }
+    }
+
+    if let Err(e) = &result {
+        if let Some(GitHubError::NotFound(_)) = e.downcast_ref::<GitHubError>() {
+            if gh_url.branch == "main" {
+                gh_url.branch = "master".to_string();
+                {
+                    let mut s = state_c.lock().await;
+                    s.status_message = "Trying master branch...".to_string();
+                }
+                result = current_client.fetch_contents(&gh_url.api_url()).await;
+            }
+        }
+    }
+
+    match result {
+        Ok(mut items) => {
+            {
+                let mut s = state_c.lock().await;
+                s.status_message = "Resolving LFS files...".to_string();
+            }
+            current_client
+                .resolve_lfs_files(&mut items, &gh_url.owner, &gh_url.repo, &gh_url.branch)
+                .await;
+
+            let mut s = state_c.lock().await;
+            s.items = items;
+            s.current_url = Some(gh_url);
+            s.mode = AppMode::Browse;
+            s.status_message = String::new();
+            s.show_toast("Repository Loaded!".to_string(), ToastType::Success);
+        }
+        Err(e) => {
+            let mut s = state_c.lock().await;
+            s.mode = AppMode::Input;
+
+            let err_msg = if let Some(gh_err) = e.downcast_ref::<GitHubError>() {
+                match gh_err {
+                    GitHubError::RateLimitReached(user) => format!(
+                        "Rate limit reached for {}. Add a token in config for more!",
+                        user
+                    ),
+                    GitHubError::NotFound(_) => "Repository or path not found.".to_string(),
+                    _ => format!("Error: {}", gh_err),
+                }
+            } else {
+                format!("Error: {}", e)
+            };
+
+            s.show_toast(err_msg, ToastType::Error);
+        }
+    }
+}
+
 async fn perform_download(state: Arc<Mutex<AppState>>) -> Result<()> {
     use crate::download::Downloader;
-    let (selected_items, _repo_path, repo_name) = {
+    let (selected_items, _repo_path, repo_name, token) = {
         let s = state.lock().await;
         if let Some(url) = &s.current_url {
             (
                 s.get_selected_items(),
                 format!("{}/{}", url.owner, url.repo),
                 url.repo.clone(),
+                s.github_token.clone(),
             )
         } else {
             return Ok(());
@@ -583,7 +516,7 @@ async fn perform_download(state: Arc<Mutex<AppState>>) -> Result<()> {
         .context("Could not find User Downloads directory")?
         .join(repo_name);
 
-    let downloader = Downloader::new(download_dir)?;
+    let downloader = Downloader::new(download_dir, token)?;
     let state_c = state.clone();
 
     let result = downloader

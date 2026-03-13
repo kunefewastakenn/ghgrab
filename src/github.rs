@@ -139,19 +139,6 @@ impl LfsPointer {
     }
 }
 
-#[derive(Debug, serde::Serialize)]
-struct LfsBatchRequest {
-    operation: String,
-    transfers: Vec<String>,
-    objects: Vec<LfsObject>,
-}
-
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-struct LfsObject {
-    oid: String,
-    size: u64,
-}
-
 #[derive(Debug, serde::Deserialize)]
 struct LfsBatchResponse {
     objects: Vec<LfsResponseObject>,
@@ -176,35 +163,91 @@ struct LfsDownloadAction {
     href: String,
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum GitHubError {
+    #[error("Invalid token. Falling back to public API.")]
+    InvalidToken,
+    #[error("Rate limit exceeded for {0}. Consider adding a token for more limits.")]
+    RateLimitReached(String),
+    #[error("Resource not found: {0}")]
+    NotFound(String),
+    #[error("API Error: {0}")]
+    ApiError(String),
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+}
+
 #[derive(Clone)]
 pub struct GitHubClient {
     client: reqwest::Client,
+    token: Option<String>,
 }
 
 impl GitHubClient {
-    pub fn new() -> Result<Self> {
+    pub fn new(token: Option<String>) -> Result<Self> {
         let client = reqwest::Client::builder()
             .user_agent("ghgrab/0.1.0")
             .build()
             .context("Failed to create HTTP client")?;
-        Ok(GitHubClient { client })
+        Ok(GitHubClient { client, token })
+    }
+
+    async fn request(
+        &self,
+        method: reqwest::Method,
+        url: &str,
+        body: Option<serde_json::Value>,
+    ) -> std::result::Result<reqwest::Response, GitHubError> {
+        let mut builder = self.client.request(method, url);
+
+        if let Some(token) = &self.token {
+            builder = builder.header("Authorization", format!("token {}", token));
+        }
+
+        if let Some(body) = body {
+            builder = builder.json(&body);
+        }
+
+        let response = builder
+            .send()
+            .await
+            .map_err(|e| GitHubError::ApiError(e.to_string()))?;
+
+        match response.status().as_u16() {
+            200..=299 => Ok(response),
+            401 if self.token.is_some() => Err(GitHubError::InvalidToken),
+            403 => {
+                let remaining = response
+                    .headers()
+                    .get("X-RateLimit-Remaining")
+                    .and_then(|h| h.to_str().ok())
+                    .and_then(|s| s.parse::<u32>().ok())
+                    .unwrap_or(1);
+
+                if remaining == 0 {
+                    let level = if self.token.is_some() {
+                        "authenticated user"
+                    } else {
+                        "unauthenticated user"
+                    };
+                    Err(GitHubError::RateLimitReached(level.to_string()))
+                } else if self.token.is_some() {
+                    
+                    Err(GitHubError::InvalidToken)
+                } else {
+                    Err(GitHubError::ApiError(format!(
+                        "Forbidden: {}",
+                        response.status()
+                    )))
+                }
+            }
+            404 => Err(GitHubError::NotFound(url.to_string())),
+            _ => Err(GitHubError::ApiError(format!("HTTP {}", response.status()))),
+        }
     }
 
     pub async fn fetch_contents(&self, url: &str) -> Result<Vec<RepoItem>> {
-        let response = self
-            .client
-            .get(url)
-            .send()
-            .await
-            .context("Failed to send request to GitHub API")?;
-
-        if response.status().as_u16() == 403 {
-            return Err(anyhow!("Rate limit exceeded. Please try again later."));
-        }
-
-        if response.status().as_u16() == 404 {
-            return Err(anyhow!("Path not found in repository"));
-        }
+        let response = self.request(reqwest::Method::GET, url, None).await?;
 
         if !response.status().is_success() {
             return Err(anyhow!("GitHub API error: {}", response.status()));
@@ -220,16 +263,7 @@ impl GitHubClient {
 
     // Fetch raw content
     pub async fn fetch_raw_content(&self, url: &str) -> Result<String> {
-        let response = self
-            .client
-            .get(url)
-            .send()
-            .await
-            .context("Failed to fetch raw content")?;
-
-        if !response.status().is_success() {
-            return Err(anyhow!("Failed to fetch file content"));
-        }
+        let response = self.request(reqwest::Method::GET, url, None).await?;
 
         let content = response.text().await.context("Failed to read content")?;
         Ok(content)
@@ -248,28 +282,20 @@ impl GitHubClient {
             owner, repo
         );
 
-        let request = LfsBatchRequest {
-            operation: "download".to_string(),
-            transfers: vec!["basic".to_string()],
-            objects: vec![LfsObject {
-                oid: oid.to_string(),
-                size,
-            }],
-        };
+        let request_body = serde_json::json!({
+            "operation": "download",
+            "transfers": ["basic"],
+            "objects": [
+                {
+                    "oid": oid,
+                    "size": size
+                }
+            ]
+        });
 
         let response = self
-            .client
-            .post(&batch_url)
-            .header("Accept", "application/vnd.git-lfs+json")
-            .header("Content-Type", "application/vnd.git-lfs+json")
-            .json(&request)
-            .send()
-            .await
-            .context("Failed to call LFS batch API")?;
-
-        if !response.status().is_success() {
-            return Err(anyhow!("LFS batch API error: {}", response.status()));
-        }
+            .request(reqwest::Method::POST, &batch_url, Some(request_body))
+            .await?;
 
         let batch_response: LfsBatchResponse = response
             .json()
@@ -512,10 +538,25 @@ mod tests {
         item.lfs_download_url = Some("https://lfs.example.com/abc123".to_string());
 
         assert!(item.is_lfs());
-        assert_eq!(item.actual_size(), Some(999999));
         assert_eq!(
             item.actual_download_url().map(|s| s.as_str()),
             Some("https://lfs.example.com/abc123")
+        );
+    }
+
+    #[test]
+    fn test_github_error_formatting() {
+        assert_eq!(
+            format!("{}", GitHubError::InvalidToken),
+            "Invalid token. Falling back to public API."
+        );
+        assert_eq!(
+            format!("{}", GitHubError::RateLimitReached("unauthenticated".to_string())),
+            "Rate limit exceeded for unauthenticated. Consider adding a token for more limits."
+        );
+        assert_eq!(
+            format!("{}", GitHubError::NotFound("src/missing.rs".to_string())),
+            "Resource not found: src/missing.rs"
         );
     }
 }

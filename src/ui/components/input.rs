@@ -168,7 +168,7 @@ pub fn render(f: &mut Frame, area: Rect, input_text: &str, status_msg: &str, cur
                     .add_modifier(Modifier::BOLD),
             ),
             Span::styled(
-                "Works with any public GitHub repository or folder path",
+                "Works with any public or private GitHub repository",
                 Style::default().fg(FG_COLOR).add_modifier(Modifier::ITALIC),
             ),
         ]),

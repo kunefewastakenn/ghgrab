@@ -14,6 +14,7 @@ pub enum ToastType {
     Info,
     Success,
     Error,
+    Warning,
 }
 
 #[derive(Clone)]
@@ -70,6 +71,7 @@ pub fn render(f: &mut Frame, area: Rect, toast: &Toast) {
         ToastType::Info => ("ℹ", ACCENT_COLOR, "Info"),
         ToastType::Success => ("✓", SUCCESS_COLOR, "Success"),
         ToastType::Error => ("✕", ERROR_COLOR, "Error"),
+        ToastType::Warning => ("⚠", WARNING_COLOR, "Warning"),
     };
 
     let block = Block::default()
