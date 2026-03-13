@@ -267,7 +267,9 @@ async fn handle_input(
 ) -> Result<bool> {
     let mut s = state.lock().await;
 
-    if (key.code == KeyCode::Char('q') || key.code == KeyCode::Char('c')) && key.modifiers.contains(KeyModifiers::CONTROL) {
+    if (key.code == KeyCode::Char('q') || key.code == KeyCode::Char('c'))
+        && key.modifiers.contains(KeyModifiers::CONTROL)
+    {
         return Ok(true);
     }
 
