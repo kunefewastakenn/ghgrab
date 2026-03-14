@@ -1,0 +1,11 @@
+[hooks]
+# checks formatting, reformats if needed
+# lints w/ clippy
+# rejects commit if either fail
+pre-commit = "(cargo fmt -- --check || (cargo fmt && false)) && cargo clippy -- -D warnings -W clippy::all"
+
+# runs tests before a push, rejects push if one fails
+pre-push = "cargo test"
+
+[logging]
+verbose = false
