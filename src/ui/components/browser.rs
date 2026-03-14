@@ -15,35 +15,33 @@ pub struct BrowserState<'a> {
     pub current_url: Option<&'a GitHubUrl>,
     pub cursor: usize,
     pub scroll_offset: usize,
-    #[allow(dead_code)]
     pub status_msg: &'a str,
     pub is_downloading: bool,
     pub ascii_mode: bool,
     pub folder_sizes: &'a HashMap<String, u64>,
+    pub is_searching: bool,
+    pub search_query: &'a str,
 }
 
 pub fn render(f: &mut Frame, area: Rect, state: &BrowserState) {
-    let chunks = if state.is_downloading {
-        Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(3), // Breadcrumb
-                Constraint::Min(10),   // File list
-                Constraint::Length(2), // Download status
-                Constraint::Length(2),
-            ])
-            .split(area)
-    } else {
-        Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(3), // Breadcrumb
-                Constraint::Min(10),   // File list
-                Constraint::Length(1), // Spacer
-                Constraint::Length(2),
-            ])
-            .split(area)
-    };
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(3), // Breadcrumb
+            Constraint::Min(10),   // File list
+            if state.is_downloading {
+                Constraint::Length(2)
+            } else {
+                Constraint::Length(0)
+            },
+            if state.is_searching {
+                Constraint::Length(3)
+            } else {
+                Constraint::Length(0)
+            },
+            Constraint::Length(2), // Help
+        ])
+        .split(area);
 
     let breadcrumb_text = if let Some(url) = state.current_url {
         format!(" {}/{} : {}", url.owner, url.repo, url.path)
@@ -161,20 +159,26 @@ pub fn render(f: &mut Frame, area: Rect, state: &BrowserState) {
                     .unwrap_or_else(|| format!("{:>12}", ""))
             };
 
-            let display_name = if item.name.len() > 35 {
-                if let Some(dot_pos) = item.name.rfind('.') {
-                    let ext = &item.name[dot_pos..];
-                    let name_part = &item.name[..dot_pos];
+            let source_name = if state.is_searching {
+                &item.path
+            } else {
+                &item.name
+            };
+
+            let display_name = if source_name.len() > 35 {
+                if let Some(dot_pos) = source_name.rfind('.') {
+                    let ext = &source_name[dot_pos..];
+                    let name_part = &source_name[..dot_pos];
                     if name_part.len() > 30 {
                         format!("{}.....{}", &name_part[..30], ext)
                     } else {
-                        item.name.clone()
+                        source_name.clone()
                     }
                 } else {
-                    format!("{}.....", &item.name[..35])
+                    format!("{}.....", &source_name[..35])
                 }
             } else {
-                item.name.clone()
+                source_name.clone()
             };
 
             let name_with_icon = format!("{}{}", icon, display_name);
@@ -242,6 +246,18 @@ pub fn render(f: &mut Frame, area: Rect, state: &BrowserState) {
         ]))
         .style(Style::default().bg(BG_COLOR));
         f.render_widget(status, chunks[2]);
+    }
+
+    // Search Bar
+    if state.is_searching {
+        let search_text = state.search_query.to_string();
+        let search_bar = Paragraph::new(search_text).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Search ")
+                .border_style(Style::default().fg(SUCCESS_COLOR)),
+        );
+        f.render_widget(search_bar, chunks[3]);
     }
 
     let help_spans = vec![
@@ -329,5 +345,5 @@ pub fn render(f: &mut Frame, area: Rect, state: &BrowserState) {
     let help = Paragraph::new(Line::from(help_spans))
         .alignment(ratatui::layout::Alignment::Center)
         .style(Style::default().bg(BG_COLOR));
-    f.render_widget(help, chunks[3]);
+    f.render_widget(help, chunks[4]);
 }

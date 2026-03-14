@@ -26,10 +26,6 @@ impl Downloader {
         let mut errors = Vec::new();
 
         for item in items {
-            if !item.selected {
-                continue;
-            }
-
             let dest_path = self.base_path.join(&item.name);
 
             let result = if item.is_file() {

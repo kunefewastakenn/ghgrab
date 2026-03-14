@@ -13,7 +13,7 @@
 - **No more clone-and-delete**: Grab exactly what you need, when you need it.
 - **Easy on the eyes**: A clean terminal interface that makes browsing feel smooth.
 - **Works where you are**: Installs quickly via NPM, Cargo, or PIP.
-- **Find things fast**: Quickly search and navigate through any repo's folders.
+- **Find things fast**: Quickly search and navigate through any repo's folders with fuzzy search.
 - **Handles the big stuff**: Built-in support for GitHub LFS (Large File Storage).
 - **Batch mode**: Select a bunch of files and folders to download them all at once.
 
@@ -49,8 +49,20 @@ ghgrab
 Or, if you already have a link, just paste it in:
 
 ```bash
+# Browse a repository
 ghgrab https://github.com/rust-lang/rust
+
+# Download to current directory directly
+ghgrab https://github.com/rust-lang/rust --cwd --no-folder
 ```
+
+### CLI Flags
+
+| Flag | Description |
+|------|-------------|
+| `--cwd` | Forces download to the current working directory. |
+| `--no-folder` | Downloads files directly without creating a subfolder for the repo. |
+| `--token <TOKEN>`| Use a specific GitHub token for this run (doesn't save to settings). |
 
 ### Configuration
 
@@ -79,7 +91,10 @@ We've kept it pretty standard, but here's a quick cheat sheet:
 |-----|--------|
 | `Enter` / `l` / `Right` | Enter directory or Submit URL |
 | `Backspace` / `h` / `Left` | Go back to previous folder |
-| `Esc` | **Return Home** (file list) or **Quit** (home screen) |
+| `Delete` | Clear URL input (Home page) |
+| `Tab` | Auto-fill `https://github.com/` (Home page) |
+| `/` | Start Searching (File list) |
+| `Esc` | **Exit Search** or **Return Home** (file list) or **Quit** (home screen) |
 | `q` / `Q` | **Quit** (from file list) |
 | `Ctrl+q` | **Force Quit** (anywhere) |
 | `Space` | Toggle selection for the current item |

@@ -52,6 +52,31 @@ impl GitHubUrl {
         })
     }
 
+    pub fn get_local_git_remote() -> Option<String> {
+        use std::process::Command;
+        let output = Command::new("git")
+            .args(["remote", "get-url", "origin"])
+            .output()
+            .ok()?;
+
+        if output.status.success() {
+            let url = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !url.is_empty() {
+                if url.starts_with("git@github.com:") {
+                    let path = url
+                        .trim_start_matches("git@github.com:")
+                        .trim_end_matches(".git");
+                    return Some(format!("https://github.com/{}", path));
+                }
+                if url.contains("github.com") && url.ends_with(".git") {
+                    return Some(url.trim_end_matches(".git").to_string());
+                }
+                return Some(url);
+            }
+        }
+        None
+    }
+
     pub fn api_url(&self) -> String {
         let base = format!(
             "https://api.github.com/repos/{}/{}/contents",

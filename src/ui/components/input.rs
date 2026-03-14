@@ -8,7 +8,14 @@ use ratatui::{
 
 use crate::ui::theme::*;
 
-pub fn render(f: &mut Frame, area: Rect, input_text: &str, status_msg: &str, cursor_visible: bool) {
+pub fn render(
+    f: &mut Frame,
+    area: Rect,
+    input_text: &str,
+    url_cursor: usize,
+    status_msg: &str,
+    cursor_visible: bool,
+) {
     let vertical_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -96,13 +103,31 @@ pub fn render(f: &mut Frame, area: Rect, input_text: &str, status_msg: &str, cur
         ])
         .split(vertical_layout[4]);
 
-    let display_text = if cursor_visible {
-        format!("{}_", input_text)
+    let display_content = if input_text.is_empty() {
+        if cursor_visible {
+            Line::from(vec![
+                Span::styled("_", Style::default().fg(FG_COLOR)),
+                Span::styled(" (Press Tab to auto-fill GitHub URL)", Style::default().fg(BORDER_COLOR).add_modifier(Modifier::ITALIC)),
+            ])
+        } else {
+            Line::from(vec![
+                Span::styled(" ", Style::default().fg(FG_COLOR)),
+                Span::styled(" (Press Tab to auto-fill GitHub URL)", Style::default().fg(BORDER_COLOR).add_modifier(Modifier::ITALIC)),
+            ])
+        }
+    } else if cursor_visible {
+        let mut s = input_text.to_string();
+        if url_cursor >= s.len() {
+            s.push('_');
+        } else {
+            s.replace_range(url_cursor..url_cursor + 1, "_");
+        }
+        Line::from(Span::raw(s))
     } else {
-        format!("{} ", input_text)
+        Line::from(Span::raw(input_text.to_string()))
     };
 
-    let input = Paragraph::new(display_text)
+    let input = Paragraph::new(display_content)
         .block(
             Block::default()
                 .borders(Borders::ALL)

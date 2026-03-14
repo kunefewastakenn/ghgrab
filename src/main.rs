@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use ghgrab::config::Config;
+
 use ghgrab::ui;
 
 #[derive(Parser)]
@@ -10,6 +11,15 @@ struct Cli {
     command: Option<Commands>,
 
     url: Option<String>,
+
+    #[arg(long, help = "Download files to current directory")]
+    cwd: bool,
+
+    #[arg(long, help = "Download files directly into target without repo folder")]
+    no_folder: bool,
+
+    #[arg(long, help = "One-time GitHub token (not stored)")]
+    token: Option<String>,
 }
 
 #[derive(Subcommand)]
@@ -109,7 +119,13 @@ async fn main() -> Result<()> {
         },
         None => {
             let config = Config::load().unwrap_or_default();
-            ui::run_tui(cli.url, config.github_token, config.download_path).await?;
+
+            let url = cli.url;
+
+            let download_path = config.download_path;
+
+            let token = cli.token.or(config.github_token);
+            ui::run_tui(url, token, download_path, cli.cwd, cli.no_folder).await?;
         }
     }
 

@@ -6,7 +6,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -35,6 +35,7 @@ pub enum AppMode {
 pub struct AppState {
     pub mode: AppMode,
     pub url_input: String,
+    pub url_cursor: usize,
     pub current_url: Option<GitHubUrl>,
     pub items: Vec<RepoItem>,
     pub cursor: usize,
@@ -49,6 +50,11 @@ pub struct AppState {
     pub download_path: Option<String>,
     pub full_tree: Option<Vec<RepoItem>>,
     pub folder_sizes: HashMap<String, u64>,
+    pub cwd: bool,
+    pub no_folder: bool,
+    pub is_searching: bool,
+    pub search_query: String,
+    pub selected_paths: HashSet<String>,
 }
 
 impl Default for AppState {
@@ -62,6 +68,7 @@ impl AppState {
         AppState {
             mode: AppMode::Input,
             url_input: String::new(),
+            url_cursor: 0,
             current_url: None,
             items: Vec::new(),
             cursor: 0,
@@ -76,6 +83,11 @@ impl AppState {
             download_path: None,
             full_tree: None,
             folder_sizes: HashMap::new(),
+            cwd: false,
+            no_folder: false,
+            is_searching: false,
+            search_query: String::new(),
+            selected_paths: HashSet::new(),
         }
     }
 
@@ -90,8 +102,8 @@ impl AppState {
         self.adjust_scroll();
     }
 
-    pub fn move_down(&mut self) {
-        if self.cursor < self.items.len().saturating_sub(1) {
+    pub fn move_down(&mut self, item_count: usize) {
+        if self.cursor < item_count.saturating_sub(1) {
             self.cursor += 1;
         }
         self.adjust_scroll();
@@ -102,9 +114,9 @@ impl AppState {
         self.adjust_scroll();
     }
 
-    pub fn move_bottom(&mut self) {
-        if !self.items.is_empty() {
-            self.cursor = self.items.len() - 1;
+    pub fn move_bottom(&mut self, item_count: usize) {
+        if item_count > 0 {
+            self.cursor = item_count - 1;
         }
         self.adjust_scroll();
     }
@@ -121,17 +133,78 @@ impl AppState {
     pub fn loop_selection(&mut self, select: bool) {
         for item in &mut self.items {
             item.selected = select;
+            if select {
+                self.selected_paths.insert(item.path.clone());
+            } else {
+                self.selected_paths.remove(&item.path);
+            }
+        }
+    }
+
+    pub fn get_view_items(&self) -> Vec<RepoItem> {
+        let mut items = if self.is_searching {
+            let source = self.full_tree.as_ref().unwrap_or(&self.items);
+            source
+                .iter()
+                .filter(|item| {
+                    item.path
+                        .to_lowercase()
+                        .contains(&self.search_query.to_lowercase())
+                })
+                .cloned()
+                .collect()
+        } else {
+            self.items.clone()
+        };
+
+        // Sync selections
+        for item in &mut items {
+            item.selected = self.selected_paths.contains(&item.path);
+        }
+        items
+    }
+
+    pub fn sync_selections(&mut self) {
+        for item in &mut self.items {
+            item.selected = self.selected_paths.contains(&item.path);
         }
     }
 
     pub fn toggle_selection(&mut self) {
-        if let Some(item) = self.items.get_mut(self.cursor) {
-            item.selected = !item.selected;
+        let items = self.get_view_items();
+        if let Some(item) = items.get(self.cursor) {
+            if self.selected_paths.contains(&item.path) {
+                self.selected_paths.remove(&item.path);
+            } else {
+                self.selected_paths.insert(item.path.clone());
+            }
         }
+        self.sync_selections();
     }
 
     pub fn get_selected_items(&self) -> Vec<RepoItem> {
-        self.items.iter().filter(|i| i.selected).cloned().collect()
+        if let Some(full_tree) = &self.full_tree {
+            full_tree
+                .iter()
+                .filter(|i| self.selected_paths.contains(&i.path))
+                .cloned()
+                .map(|mut i| {
+                    i.selected = true;
+                    i
+                })
+                .collect()
+        } else {
+            // Fallback for non-recursive mode
+            self.items
+                .iter()
+                .filter(|i| self.selected_paths.contains(&i.path))
+                .cloned()
+                .map(|mut i| {
+                    i.selected = true;
+                    i
+                })
+                .collect()
+        }
     }
 }
 
@@ -139,6 +212,8 @@ pub async fn run_tui(
     initial_url: Option<String>,
     token: Option<String>,
     download_path: Option<String>,
+    cwd: bool,
+    no_folder: bool,
 ) -> Result<()> {
     install_panic_hook();
     enable_raw_mode().context("Failed to enable raw mode")?;
@@ -152,6 +227,8 @@ pub async fn run_tui(
     let mut state_init = AppState::new();
     state_init.github_token = token;
     state_init.download_path = download_path;
+    state_init.cwd = cwd;
+    state_init.no_folder = no_folder;
     let has_initial_url = initial_url.is_some();
 
     if let Some(url) = initial_url {
@@ -226,6 +303,7 @@ async fn event_loop(
                             f,
                             size,
                             &state_lock.url_input,
+                            state_lock.url_cursor,
                             &state_lock.status_message,
                             cursor_visible,
                         );
@@ -239,8 +317,10 @@ async fn event_loop(
                         );
                     }
                     AppMode::Browse => {
+                        let filtered_items = state_lock.get_view_items();
+
                         let browser_state = components::browser::BrowserState {
-                            items: &state_lock.items,
+                            items: &filtered_items,
                             current_url: state_lock.current_url.as_ref(),
                             cursor: state_lock.cursor,
                             scroll_offset: state_lock.scroll_offset,
@@ -248,6 +328,8 @@ async fn event_loop(
                             is_downloading: state_lock.downloading,
                             ascii_mode: state_lock.ascii_mode,
                             folder_sizes: &state_lock.folder_sizes,
+                            is_searching: state_lock.is_searching,
+                            search_query: &state_lock.search_query,
                         };
                         components::browser::render(f, size, &browser_state);
                     }
@@ -288,10 +370,55 @@ async fn handle_input(
 
     match s.mode {
         AppMode::Input => match key.code {
+            KeyCode::Char('w') | KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                s.url_input.clear();
+                s.url_cursor = 0;
+            }
             KeyCode::Char('v') if key.modifiers.contains(KeyModifiers::CONTROL) => {}
-            KeyCode::Char(c) => s.url_input.push(c),
+            KeyCode::Char(c) if !key.modifiers.intersects(KeyModifiers::CONTROL | KeyModifiers::ALT | KeyModifiers::SUPER) => {
+                let pos = s.url_cursor;
+                s.url_input.insert(pos, c);
+                s.url_cursor += 1;
+            }
             KeyCode::Backspace => {
-                s.url_input.pop();
+                if key.modifiers.contains(KeyModifiers::CONTROL)
+                    || key.modifiers.contains(KeyModifiers::ALT)
+                    || key.modifiers.contains(KeyModifiers::SUPER)
+                {
+                    s.url_input.clear();
+                    s.url_cursor = 0;
+                } else if s.url_cursor > 0 {
+                    let pos = s.url_cursor;
+                    s.url_input.remove(pos - 1);
+                    s.url_cursor -= 1;
+                }
+            }
+            KeyCode::Delete => {
+                if key.modifiers.contains(KeyModifiers::CONTROL)
+                    || key.modifiers.contains(KeyModifiers::ALT)
+                    || key.modifiers.contains(KeyModifiers::SUPER)
+                    || s.url_input.len() > 0 // User said "just del" to remove full URL
+                {
+                    s.url_input.clear();
+                    s.url_cursor = 0;
+                }
+            }
+            KeyCode::Left => {
+                if s.url_cursor > 0 {
+                    s.url_cursor -= 1;
+                }
+            }
+            KeyCode::Right => {
+                if s.url_cursor < s.url_input.len() {
+                    s.url_cursor += 1;
+                }
+            }
+            KeyCode::Tab => {
+                let target = "https://github.com/";
+                if s.url_input.is_empty() || (target.starts_with(&s.url_input) && s.url_input.len() < target.len()) {
+                    s.url_input = target.to_string();
+                    s.url_cursor = s.url_input.len();
+                }
             }
             KeyCode::Esc => return Ok(true),
             KeyCode::Enter => {
@@ -326,11 +453,20 @@ async fn handle_input(
         AppMode::Browse => {
             match key.code {
                 KeyCode::Char('q') | KeyCode::Char('Q') => return Ok(true),
-                KeyCode::Esc => {
+                KeyCode::Esc if !s.is_searching => {
                     s.mode = AppMode::Input;
                     return Ok(false);
                 }
-                KeyCode::Char('i') => {
+                KeyCode::Esc if s.is_searching => {
+                    s.is_searching = false;
+                    s.search_query.clear();
+                    s.status_message = String::new();
+                }
+                KeyCode::Enter if s.is_searching => {
+                    s.is_searching = false;
+                    s.status_message = String::new();
+                }
+                KeyCode::Char('i') if !s.is_searching => {
                     s.ascii_mode = !s.ascii_mode;
                     let msg = if s.ascii_mode {
                         "ASCII Icons"
@@ -340,19 +476,70 @@ async fn handle_input(
                     s.show_toast(msg.to_string(), ToastType::Info);
                 }
 
-                // moving around
-                KeyCode::Up | KeyCode::Char('k') => s.move_up(),
-                KeyCode::Down | KeyCode::Char('j') => s.move_down(),
-                KeyCode::Home | KeyCode::Char('g') => s.move_top(),
-                KeyCode::End | KeyCode::Char('G') => s.move_bottom(),
+                KeyCode::Up => s.move_up(),
+                KeyCode::Down => {
+                    let count = s.get_view_items().len();
+                    s.move_down(count);
+                }
+                KeyCode::Char('k') if !s.is_searching => s.move_up(),
+                KeyCode::Char('j') if !s.is_searching => {
+                    let count = s.get_view_items().len();
+                    s.move_down(count);
+                }
+                KeyCode::Home => s.move_top(),
+                KeyCode::End => {
+                    let count = s.get_view_items().len();
+                    s.move_bottom(count);
+                }
+                KeyCode::Char('g') if !s.is_searching => s.move_top(),
+                KeyCode::Char('G') if !s.is_searching => {
+                    let count = s.get_view_items().len();
+                    s.move_bottom(count);
+                }
 
                 // selections
-                KeyCode::Char(' ') => s.toggle_selection(),
-                KeyCode::Char('a') => s.loop_selection(true),
-                KeyCode::Char('u') => s.loop_selection(false),
+                KeyCode::Char(' ') => {
+                    let items = s.get_view_items();
+                    if let Some(item) = items.get(s.cursor) {
+                        if s.selected_paths.contains(&item.path) {
+                            s.selected_paths.remove(&item.path);
+                        } else {
+                            s.selected_paths.insert(item.path.clone());
+                        }
+                    }
+                }
+                KeyCode::Char('a') if !s.is_searching => {
+                    let items = s.get_view_items();
+                    for item in items {
+                        s.selected_paths.insert(item.path.clone());
+                    }
+                }
+                KeyCode::Char('u') if !s.is_searching => {
+                    let items = s.get_view_items();
+                    for item in items {
+                        s.selected_paths.remove(&item.path);
+                    }
+                }
 
-                // go back up a level
-                KeyCode::Backspace | KeyCode::Left | KeyCode::Char('h') => {
+                KeyCode::Char('/') => {
+                    s.is_searching = !s.is_searching;
+                    if !s.is_searching {
+                        s.search_query.clear();
+                    }
+                }
+                KeyCode::Char(c) if s.is_searching => {
+                    s.search_query.push(c);
+                    s.cursor = 0;
+                    s.scroll_offset = 0;
+                }
+                KeyCode::Backspace if s.is_searching => {
+                    s.search_query.pop();
+                    s.cursor = 0;
+                    s.scroll_offset = 0;
+                }
+
+                // go back up a level (only when not searching)
+                KeyCode::Backspace | KeyCode::Left | KeyCode::Char('h') if !s.is_searching => {
                     if let Some((prev_url, prev_cursor)) = s.navigation_stack.pop() {
                         s.status_message = "Heading back...".to_string();
                         let current_url = prev_url.clone();
@@ -378,6 +565,7 @@ async fn handle_input(
                             };
 
                             s.items = next_items;
+                            s.sync_selections();
                             s.current_url = Some(current_url);
                             s.cursor = cursor_pos;
                             s.scroll_offset = 0;
@@ -388,6 +576,7 @@ async fn handle_input(
                                 Ok(items) => {
                                     let mut s = state.lock().await;
                                     s.items = items;
+                                    s.sync_selections();
                                     s.current_url = Some(prev_url);
                                     s.cursor = prev_cursor;
                                     s.scroll_offset = 0;
@@ -402,8 +591,9 @@ async fn handle_input(
                         s.mode = AppMode::Input;
                     }
                 }
-                KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => {
-                    if let Some(item) = s.items.get(s.cursor).cloned() {
+                KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') if !s.is_searching => {
+                    let items = s.get_view_items();
+                    if let Some(item) = items.get(s.cursor).cloned() {
                         if item.is_dir() {
                             let cursor_pos = s.cursor;
                             if let Some(current_url) = s.current_url.clone() {
@@ -432,6 +622,7 @@ async fn handle_input(
                                         .collect();
 
                                     s.items = next_items;
+                                    s.sync_selections();
                                     s.current_url = Some(new_url);
                                     s.cursor = 0;
                                     s.scroll_offset = 0;
@@ -441,6 +632,7 @@ async fn handle_input(
                                         Ok(items) => {
                                             let mut s = state.lock().await;
                                             s.items = items;
+                                            s.sync_selections();
                                             s.current_url = Some(new_url);
                                             s.cursor = 0;
                                             s.scroll_offset = 0;
@@ -459,7 +651,7 @@ async fn handle_input(
                         }
                     }
                 }
-                KeyCode::Char('d') | KeyCode::Char('D') => {
+                KeyCode::Char('d') | KeyCode::Char('D') if !s.is_searching => {
                     if s.get_selected_items().is_empty() {
                         s.show_toast("No items selected!".to_string(), ToastType::Info);
                     } else {
@@ -566,10 +758,7 @@ async fn load_repo(state: Arc<Mutex<AppState>>, client: GitHubClient, mut gh_url
             s.current_url = Some(gh_url);
             s.mode = AppMode::Browse;
             s.status_message = String::new();
-            s.show_toast(
-                "Repository Loaded (Cached)!".to_string(),
-                ToastType::Success,
-            );
+            s.show_toast("Repository Loaded!".to_string(), ToastType::Success);
         }
         Err(_) => {
             {
@@ -616,7 +805,7 @@ async fn load_repo(state: Arc<Mutex<AppState>>, client: GitHubClient, mut gh_url
 
 async fn perform_download(state: Arc<Mutex<AppState>>) -> Result<()> {
     use crate::download::Downloader;
-    let (items_to_download, _repo_path, repo_name, token, custom_path) = {
+    let (items_to_download, _repo_path, repo_name, token, custom_path, cwd, no_folder) = {
         let s = state.lock().await;
         if let Some(url) = &s.current_url {
             let selected = s.get_selected_items();
@@ -655,19 +844,28 @@ async fn perform_download(state: Arc<Mutex<AppState>>) -> Result<()> {
                 url.repo.clone(),
                 s.github_token.clone(),
                 s.download_path.clone(),
+                s.cwd,
+                s.no_folder,
             )
         } else {
             return Ok(());
         }
     };
 
-    let download_dir = if let Some(path) = custom_path {
-        std::path::PathBuf::from(path).join(repo_name)
+    let download_dir = if cwd {
+        std::env::current_dir().context("Could not get current working directory")?
+    } else if let Some(path) = custom_path {
+        std::path::PathBuf::from(path)
     } else {
         dirs::download_dir()
             .or_else(|| dirs::home_dir().map(|h| h.join("Downloads")))
             .context("Could not find User Downloads directory")?
-            .join(repo_name)
+    };
+
+    let download_dir = if no_folder {
+        download_dir
+    } else {
+        download_dir.join(repo_name)
     };
 
     let downloader = Downloader::new(download_dir.clone(), token)?;

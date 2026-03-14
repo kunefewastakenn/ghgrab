@@ -3,7 +3,6 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
-// Binary lives next to this file in the bin/ directory
 const binaryName = 'ghgrab' + (process.platform === 'win32' ? '.exe' : '');
 const binPath = path.join(__dirname, binaryName);
 
