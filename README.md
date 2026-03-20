@@ -14,7 +14,7 @@
 - **Easy on the eyes**: A clean terminal interface that makes browsing feel smooth.
 - **Works where you are**: Installs quickly via NPM, Cargo, or PIP.
 - **Find things fast**: Quickly search and navigate through any repo's folders with fuzzy search.
-- **File Preview**: Preview any file; including source code, images, and GIFs directly in the TUI.
+- **File Preview**: Preview source code and text files directly in the TUI.
 - **Handles the big stuff**: Built-in support for GitHub LFS (Large File Storage).
 - **Batch mode**: Select a bunch of files and folders to download them all at once.
 
@@ -110,7 +110,7 @@ We've kept it pretty standard, but here's a quick cheat sheet:
 | `q` / `Q` | **Quit** (from file list) |
 | `Ctrl+q` | **Force Quit** (anywhere) |
 | `Space` | Toggle selection for the current item |
-| `p` / `P` | **Preview** current file (Images, GIFs, Text) |
+| `p` / `P` | **Preview** current file |
 | `a` | Select All items |
 | `u` | Unselect all items |
 | `d` / `D` | Download selected items |
