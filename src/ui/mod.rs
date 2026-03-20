@@ -12,7 +12,6 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::github::{GitHubClient, GitHubError, GitHubUrl, RepoItem};
-use ratatui_image::picker::Picker;
 
 pub mod components;
 pub mod theme;
@@ -60,8 +59,7 @@ pub struct AppState {
     pub preview_content: String,
     pub preview_path: String,
     pub preview_loading: bool,
-    pub preview_image: Option<image::DynamicImage>,
-    pub picker: Option<Picker>,
+    pub preview_is_image: bool,
 }
 
 impl Default for AppState {
@@ -98,8 +96,7 @@ impl AppState {
             preview_content: String::new(),
             preview_path: String::new(),
             preview_loading: false,
-            preview_image: None,
-            picker: None,
+            preview_is_image: false,
         }
     }
 
@@ -242,9 +239,6 @@ pub async fn run_tui(
     state_init.cwd = cwd;
     state_init.no_folder = no_folder;
 
-    // Initialize Picker
-    state_init.picker = Some(Picker::new((8, 12))); // Safe fallback for cell size
-
     let has_initial_url = initial_url.is_some();
 
     if let Some(url) = initial_url {
@@ -355,8 +349,7 @@ async fn event_loop(
                             content: &s.preview_content,
                             path: &s.preview_path,
                             loading: s.preview_loading,
-                            image: s.preview_image.as_ref(),
-                            picker: s.picker.as_mut(),
+                            is_image: s.preview_is_image,
                         };
                         components::preview::render(f, size, preview_state);
                     }
@@ -636,7 +629,7 @@ async fn handle_input(
                                 s.mode = AppMode::Preview;
                                 s.preview_path = item.path.clone();
                                 s.preview_content = String::new();
-                                s.preview_image = None;
+                                s.preview_is_image = false;
                                 s.preview_loading = true;
 
                                 let url = download_url.clone();
@@ -645,31 +638,9 @@ async fn handle_input(
                                 let item_path = item.path.clone();
 
                                 tokio::spawn(async move {
-                                    if is_media_file(&item_path) {
-                                        match client_c.fetch_bytes(&url).await {
-                                            Ok(data) => {
-                                                if let Ok(img) = image::load_from_memory(&data) {
-                                                    let mut s = state_c.lock().await;
-                                                    s.preview_image = Some(img);
-                                                    s.preview_loading = false;
-                                                } else {
-                                                    let mut s = state_c.lock().await;
-                                                    s.preview_content =
-                                                        "Failed to decode image.".to_string();
-                                                    s.preview_loading = false;
-                                                }
-                                            }
-                                            Err(e) => {
-                                                let mut s = state_c.lock().await;
-                                                s.preview_content =
-                                                    format!("Error fetching image: {}", e);
-                                                s.preview_loading = false;
-                                            }
-                                        }
-                                    } else if is_video_file(&item_path) {
+                                    if is_media_file(&item_path) || is_video_file(&item_path) {
                                         let mut s = state_c.lock().await;
-                                        s.preview_content =
-                                            "Video preview not supported yet.".to_string();
+                                        s.preview_is_image = true;
                                         s.preview_loading = false;
                                     } else {
                                         match client_c.fetch_partial_content(&url, 16 * 1024).await

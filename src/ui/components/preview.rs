@@ -12,11 +12,10 @@ pub struct PreviewState<'a> {
     pub content: &'a str,
     pub path: &'a str,
     pub loading: bool,
-    pub image: Option<&'a image::DynamicImage>,
-    pub picker: Option<&'a mut ratatui_image::picker::Picker>,
+    pub is_image: bool,
 }
 
-pub fn render(f: &mut Frame, area: Rect, mut state: PreviewState) {
+pub fn render(f: &mut Frame, area: Rect, state: PreviewState) {
     let block = Block::default()
         .borders(Borders::ALL)
         .title(format!(" Preview: {} ", state.path))
@@ -44,24 +43,21 @@ pub fn render(f: &mut Frame, area: Rect, mut state: PreviewState) {
             .split(inner_area)[1];
 
         f.render_widget(loading_text, vertical_center);
-    } else if let Some(img) = state.image {
-        if let Some(ref mut picker) = state.picker {
-            let resize = ratatui_image::Resize::Fit;
-            if let Ok(protocol) = picker.new_protocol(img.clone(), inner_area, resize) {
-                let image_widget = ratatui_image::FixedImage::new(protocol.as_ref());
-                f.render_widget(image_widget, inner_area);
-            } else {
-                let error_text = Paragraph::new("Failed to create image protocol.")
-                    .style(Style::default().fg(ERROR_COLOR))
-                    .alignment(Alignment::Center);
-                f.render_widget(error_text, inner_area);
-            }
-        } else {
-            let error_text = Paragraph::new("Image picker not initialized.")
-                .style(Style::default().fg(ERROR_COLOR))
-                .alignment(Alignment::Center);
-            f.render_widget(error_text, inner_area);
-        }
+    } else if state.is_image {
+        let msg = Paragraph::new("Image preview is not supported in the terminal.\nUse a local image viewer to open this file.")
+            .style(Style::default().fg(WARNING_COLOR))
+            .alignment(Alignment::Center);
+
+        let vertical_center = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Percentage(40),
+                Constraint::Length(3),
+                Constraint::Percentage(40),
+            ])
+            .split(inner_area)[1];
+
+        f.render_widget(msg, vertical_center);
     } else {
         let content = if state.content.is_empty() {
             "No content available or empty file."
