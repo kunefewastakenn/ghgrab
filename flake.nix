@@ -34,7 +34,7 @@
       {
         packages.default = rustPlatform.buildRustPackage {
           pname = "ghgrab";
-          version = "1.0.2";
+          version = "1.0.3";
 
           src = ./.;
           cargoLock.lockFile = ./Cargo.lock;
