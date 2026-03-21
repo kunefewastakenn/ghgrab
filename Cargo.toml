@@ -1,6 +1,6 @@
 [package]
 name = "ghgrab"
-version = "1.0.7"
+version = "1.1.0"
 edition = "2021"
 authors = ["abhixdd"]
 description = "A TUI-based tool to download specific files or folders from GitHub repositories"
