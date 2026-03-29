@@ -5,16 +5,16 @@ use std::sync::OnceLock;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct ThemeFile {
-    bg_color:       Option<[u8; 3]>,
-    fg_color:       Option<[u8; 3]>,
-    accent_color:   Option<[u8; 3]>,
-    warning_color:  Option<[u8; 3]>,
-    error_color:    Option<[u8; 3]>,
-    success_color:  Option<[u8; 3]>,
-    folder_color:   Option<[u8; 3]>,
-    selected_color: Option<[u8; 3]>,
-    border_color:   Option<[u8; 3]>,
-    highlight_bg:   Option<[u8; 3]>,
+    bg_color:       Option<String>,
+    fg_color:       Option<String>,
+    accent_color:   Option<String>,
+    warning_color:  Option<String>,
+    error_color:    Option<String>,
+    success_color:  Option<String>,
+    folder_color:   Option<String>,
+    selected_color: Option<String>,
+    border_color:   Option<String>,
+    highlight_bg:   Option<String>,
 }
 
 struct Theme {
@@ -30,8 +30,17 @@ struct Theme {
     pub highlight_bg:   Color,
 }
 
-fn rgb(val: Option<[u8; 3]>, default: [u8; 3]) -> Color {
-    let [r, g, b] = val.unwrap_or(default);
+fn parse_color(val: Option<&str>, default: [u8; 3]) -> Color {
+    let [r, g, b] = if let Some(hex) = val {
+        let hex = hex.trim_start_matches('#');
+        if hex.len() == 6 {
+            if let (Ok(r), Ok(g), Ok(b)) = (
+                u8::from_str_radix(&hex[0..2], 16),
+                u8::from_str_radix(&hex[2..4], 16),
+                u8::from_str_radix(&hex[4..6], 16),
+            ) { [r, g, b] } else { default }
+        } else { default }
+    } else { default };
     Color::Rgb(r, g, b)
 }
 
@@ -43,32 +52,31 @@ fn load_theme() -> Theme {
         let content = fs::read_to_string(path).ok()?;
         toml::from_str(&content).ok()
     })();
-
     let f = file.as_ref();
     Theme {
-        bg_color:       rgb(f.and_then(|t| t.bg_color),       [36, 40, 59]),
-        fg_color:       rgb(f.and_then(|t| t.fg_color),       [192, 202, 245]),
-        accent_color:   rgb(f.and_then(|t| t.accent_color),   [122, 162, 247]),
-        warning_color:  rgb(f.and_then(|t| t.warning_color),  [224, 175, 104]),
-        error_color:    rgb(f.and_then(|t| t.error_color),    [247, 120, 107]),
-        success_color:  rgb(f.and_then(|t| t.success_color),  [158, 206, 106]),
-        folder_color:   rgb(f.and_then(|t| t.folder_color),   [130, 170, 255]),
-        selected_color: rgb(f.and_then(|t| t.selected_color), [255, 158, 100]),
-        border_color:   rgb(f.and_then(|t| t.border_color),   [86, 95, 137]),
-        highlight_bg:   rgb(f.and_then(|t| t.highlight_bg),   [41, 46, 66]),
+        bg_color:       parse_color(f.and_then(|t| t.bg_color.as_deref()),       [36, 40, 59]),
+        fg_color:       parse_color(f.and_then(|t| t.fg_color.as_deref()),       [192, 202, 245]),
+        accent_color:   parse_color(f.and_then(|t| t.accent_color.as_deref()),   [122, 162, 247]),
+        warning_color:  parse_color(f.and_then(|t| t.warning_color.as_deref()),  [224, 175, 104]),
+        error_color:    parse_color(f.and_then(|t| t.error_color.as_deref()),    [247, 120, 107]),
+        success_color:  parse_color(f.and_then(|t| t.success_color.as_deref()),  [158, 206, 106]),
+        folder_color:   parse_color(f.and_then(|t| t.folder_color.as_deref()),   [130, 170, 255]),
+        selected_color: parse_color(f.and_then(|t| t.selected_color.as_deref()), [255, 158, 100]),
+        border_color:   parse_color(f.and_then(|t| t.border_color.as_deref()),   [86, 95, 137]),
+        highlight_bg:   parse_color(f.and_then(|t| t.highlight_bg.as_deref()),   [41, 46, 66]),
     }
 }
 
 static THEME: OnceLock<Theme> = OnceLock::new();
 fn t() -> &'static Theme { THEME.get_or_init(load_theme) }
 
-pub fn BG_COLOR()       -> Color { t().bg_color }
-pub fn FG_COLOR()       -> Color { t().fg_color }
-pub fn ACCENT_COLOR()   -> Color { t().accent_color }
-pub fn WARNING_COLOR()  -> Color { t().warning_color }
-pub fn ERROR_COLOR()    -> Color { t().error_color }
-pub fn SUCCESS_COLOR()  -> Color { t().success_color }
-pub fn FOLDER_COLOR()   -> Color { t().folder_color }
-pub fn _SELECTED_COLOR()-> Color { t().selected_color }
-pub fn BORDER_COLOR()   -> Color { t().border_color }
-pub fn HIGHLIGHT_BG()   -> Color { t().highlight_bg }
+pub fn BG_COLOR()        -> Color { t().bg_color }
+pub fn FG_COLOR()        -> Color { t().fg_color }
+pub fn ACCENT_COLOR()    -> Color { t().accent_color }
+pub fn WARNING_COLOR()   -> Color { t().warning_color }
+pub fn ERROR_COLOR()     -> Color { t().error_color }
+pub fn SUCCESS_COLOR()   -> Color { t().success_color }
+pub fn FOLDER_COLOR()    -> Color { t().folder_color }
+pub fn _SELECTED_COLOR() -> Color { t().selected_color }
+pub fn BORDER_COLOR()    -> Color { t().border_color }
+pub fn HIGHLIGHT_BG()    -> Color { t().highlight_bg }
