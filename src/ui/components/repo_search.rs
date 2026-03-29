@@ -37,33 +37,33 @@ pub fn render(f: &mut Frame, area: Rect, state: &RepoSearchState) {
             Span::styled(
                 " ghgrab ",
                 Style::default()
-                    .fg(BG_COLOR)
-                    .bg(ACCENT_COLOR)
+                    .fg(BG_COLOR())
+                    .bg(ACCENT_COLOR())
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw("  "),
             Span::styled(
                 "Repository Search",
-                Style::default().fg(FG_COLOR).add_modifier(Modifier::BOLD),
+                Style::default().fg(FG_COLOR()).add_modifier(Modifier::BOLD),
             ),
         ]),
         Line::from(vec![
-            Span::styled(" Query: ", Style::default().fg(BORDER_COLOR)),
+            Span::styled(" Query: ", Style::default().fg(BORDER_COLOR())),
             Span::styled(
                 format!("\"{}\"", state.query),
                 Style::default()
-                    .fg(ACCENT_COLOR)
+                    .fg(ACCENT_COLOR())
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::styled("  |  ", Style::default().fg(BORDER_COLOR)),
+            Span::styled("  |  ", Style::default().fg(BORDER_COLOR())),
             Span::styled(
                 format!("{} shown", state.results.len()),
-                Style::default().fg(SUCCESS_COLOR),
+                Style::default().fg(SUCCESS_COLOR()),
             ),
-            Span::styled(" of ", Style::default().fg(BORDER_COLOR)),
+            Span::styled(" of ", Style::default().fg(BORDER_COLOR())),
             Span::styled(
                 state.total_results.to_string(),
-                Style::default().fg(FG_COLOR).add_modifier(Modifier::BOLD),
+                Style::default().fg(FG_COLOR()).add_modifier(Modifier::BOLD),
             ),
         ]),
     ])
@@ -71,8 +71,8 @@ pub fn render(f: &mut Frame, area: Rect, state: &RepoSearchState) {
         Block::default()
             .borders(Borders::ALL)
             .title(" Search Results ")
-            .border_style(Style::default().fg(ACCENT_COLOR))
-            .style(Style::default().bg(BG_COLOR)),
+            .border_style(Style::default().fg(ACCENT_COLOR()))
+            .style(Style::default().bg(BG_COLOR())),
     );
     f.render_widget(title, vertical_layout[0]);
 
@@ -96,9 +96,9 @@ pub fn render(f: &mut Frame, area: Rect, state: &RepoSearchState) {
             "Hidden"
         },
         if state.filters.include_forks {
-            SUCCESS_COLOR
+            SUCCESS_COLOR()
         } else {
-            BORDER_COLOR
+            BORDER_COLOR()
         },
     );
     render_filter_chip(
@@ -106,14 +106,14 @@ pub fn render(f: &mut Frame, area: Rect, state: &RepoSearchState) {
         filter_layout[1],
         "Min Stars",
         &format_min_stars(state.filters.min_stars),
-        WARNING_COLOR,
+        WARNING_COLOR(),
     );
     render_filter_chip(
         f,
         filter_layout[2],
         "Language",
         state.filters.language.as_deref().unwrap_or("Any"),
-        SUCCESS_COLOR,
+        SUCCESS_COLOR(),
     );
     render_filter_chip(
         f,
@@ -124,7 +124,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &RepoSearchState) {
             RepoSearchSort::Updated => "Updated",
             RepoSearchSort::Name => "Name",
         },
-        ACCENT_COLOR,
+        ACCENT_COLOR(),
     );
 
     let status_text = if state.loading {
@@ -140,27 +140,27 @@ pub fn render(f: &mut Frame, area: Rect, state: &RepoSearchState) {
     };
 
     let status = Paragraph::new(Line::from(vec![
-        Span::styled(" Search ", Style::default().fg(BG_COLOR).bg(SUCCESS_COLOR)),
+        Span::styled(" Search ", Style::default().fg(BG_COLOR()).bg(SUCCESS_COLOR())),
         Span::raw(" "),
-        Span::styled(status_text, Style::default().fg(FG_COLOR)),
+        Span::styled(status_text, Style::default().fg(FG_COLOR())),
     ]))
     .block(
         Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(BORDER_COLOR))
-            .style(Style::default().bg(BG_COLOR)),
+            .border_style(Style::default().fg(BORDER_COLOR()))
+            .style(Style::default().bg(BG_COLOR())),
     );
     f.render_widget(status, vertical_layout[2]);
 
     if state.loading && state.total_results == 0 {
         let loading_widget = Paragraph::new("\nSearching GitHub repositories...")
             .alignment(Alignment::Center)
-            .style(Style::default().fg(FG_COLOR).add_modifier(Modifier::ITALIC))
+            .style(Style::default().fg(FG_COLOR()).add_modifier(Modifier::ITALIC))
             .block(
                 Block::default()
                     .borders(Borders::ALL)
                     .title(" Results ")
-                    .border_style(Style::default().fg(BORDER_COLOR)),
+                    .border_style(Style::default().fg(BORDER_COLOR())),
             );
         f.render_widget(loading_widget, vertical_layout[3]);
     } else {
@@ -183,10 +183,10 @@ pub fn render(f: &mut Frame, area: Rect, state: &RepoSearchState) {
                 Block::default()
                     .borders(Borders::ALL)
                     .title(format!(" Results ({}) ", state.results.len()))
-                    .border_style(Style::default().fg(BORDER_COLOR))
-                    .style(Style::default().bg(BG_COLOR)),
+                    .border_style(Style::default().fg(BORDER_COLOR()))
+                    .style(Style::default().bg(BG_COLOR())),
             )
-            .highlight_style(Style::default().bg(HIGHLIGHT_BG))
+            .highlight_style(Style::default().bg(HIGHLIGHT_BG()))
             .highlight_symbol("");
 
         f.render_stateful_widget(results_list, vertical_layout[3], &mut list_state);
@@ -196,78 +196,78 @@ pub fn render(f: &mut Frame, area: Rect, state: &RepoSearchState) {
         Span::styled(
             "↑/↓",
             Style::default()
-                .fg(ACCENT_COLOR)
+                .fg(ACCENT_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" Move", Style::default().fg(BORDER_COLOR)),
-        Span::styled("  |  ", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" Move", Style::default().fg(BORDER_COLOR())),
+        Span::styled("  |  ", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             "Enter",
             Style::default()
-                .fg(SUCCESS_COLOR)
+                .fg(SUCCESS_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" Open", Style::default().fg(BORDER_COLOR)),
-        Span::styled("  |  ", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" Open", Style::default().fg(BORDER_COLOR())),
+        Span::styled("  |  ", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             "f",
             Style::default()
-                .fg(SUCCESS_COLOR)
+                .fg(SUCCESS_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" Forks", Style::default().fg(BORDER_COLOR)),
-        Span::styled("  |  ", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" Forks", Style::default().fg(BORDER_COLOR())),
+        Span::styled("  |  ", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             "m",
             Style::default()
-                .fg(WARNING_COLOR)
+                .fg(WARNING_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" Stars", Style::default().fg(BORDER_COLOR)),
-        Span::styled("  |  ", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" Stars", Style::default().fg(BORDER_COLOR())),
+        Span::styled("  |  ", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             "l",
             Style::default()
-                .fg(SUCCESS_COLOR)
+                .fg(SUCCESS_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" Language", Style::default().fg(BORDER_COLOR)),
-        Span::styled("  |  ", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" Language", Style::default().fg(BORDER_COLOR())),
+        Span::styled("  |  ", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             "s",
             Style::default()
-                .fg(ACCENT_COLOR)
+                .fg(ACCENT_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" Sort", Style::default().fg(BORDER_COLOR)),
-        Span::styled("  |  ", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" Sort", Style::default().fg(BORDER_COLOR())),
+        Span::styled("  |  ", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             "x",
             Style::default()
-                .fg(WARNING_COLOR)
+                .fg(WARNING_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" Reset", Style::default().fg(BORDER_COLOR)),
-        Span::styled("  |  ", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" Reset", Style::default().fg(BORDER_COLOR())),
+        Span::styled("  |  ", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             "r",
             Style::default()
-                .fg(ACCENT_COLOR)
+                .fg(ACCENT_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" Refresh", Style::default().fg(BORDER_COLOR)),
-        Span::styled("  |  ", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" Refresh", Style::default().fg(BORDER_COLOR())),
+        Span::styled("  |  ", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             "Esc",
             Style::default()
-                .fg(ERROR_COLOR)
+                .fg(ERROR_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" Back", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" Back", Style::default().fg(BORDER_COLOR())),
     ];
     let help_widget = Paragraph::new(Line::from(help_spans))
         .alignment(Alignment::Center)
-        .style(Style::default().bg(BG_COLOR));
+        .style(Style::default().bg(BG_COLOR()));
     f.render_widget(help_widget, vertical_layout[4]);
 }
 
@@ -276,7 +276,7 @@ fn render_filter_chip(f: &mut Frame, area: Rect, label: &str, value: &str, color
         Line::from(Span::styled(
             label,
             Style::default()
-                .fg(BORDER_COLOR)
+                .fg(BORDER_COLOR())
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::styled(
@@ -288,8 +288,8 @@ fn render_filter_chip(f: &mut Frame, area: Rect, label: &str, value: &str, color
     .block(
         Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(BORDER_COLOR))
-            .style(Style::default().bg(BG_COLOR)),
+            .border_style(Style::default().fg(BORDER_COLOR()))
+            .style(Style::default().bg(BG_COLOR())),
     );
     f.render_widget(chip, area);
 }
@@ -304,35 +304,35 @@ fn build_result_item(width: u16, is_selected: bool, item: &SearchItem) -> ListIt
 
     let title_style = if is_selected {
         Style::default()
-            .fg(ACCENT_COLOR)
+            .fg(ACCENT_COLOR())
             .add_modifier(Modifier::BOLD)
     } else {
-        Style::default().fg(ACCENT_COLOR)
+        Style::default().fg(ACCENT_COLOR())
     };
 
     let mut meta_spans = vec![
         Span::styled(
             format!(" {} stars ", item.stargazers_count),
-            Style::default().fg(WARNING_COLOR),
+            Style::default().fg(WARNING_COLOR()),
         ),
-        Span::styled("•", Style::default().fg(BORDER_COLOR)),
+        Span::styled("•", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             format!(" updated {}", format_date(&item.pushed_at)),
-            Style::default().fg(BORDER_COLOR),
+            Style::default().fg(BORDER_COLOR()),
         ),
     ];
 
     if let Some(language) = &item.language {
-        meta_spans.push(Span::styled("  •  ", Style::default().fg(BORDER_COLOR)));
+        meta_spans.push(Span::styled("  •  ", Style::default().fg(BORDER_COLOR())));
         meta_spans.push(Span::styled(
             language.clone(),
-            Style::default().fg(SUCCESS_COLOR),
+            Style::default().fg(SUCCESS_COLOR()),
         ));
     }
 
     if item.fork {
-        meta_spans.push(Span::styled("  •  ", Style::default().fg(BORDER_COLOR)));
-        meta_spans.push(Span::styled("Fork", Style::default().fg(FG_COLOR)));
+        meta_spans.push(Span::styled("  •  ", Style::default().fg(BORDER_COLOR())));
+        meta_spans.push(Span::styled("Fork", Style::default().fg(FG_COLOR())));
     }
 
     let description = item
@@ -345,14 +345,14 @@ fn build_result_item(width: u16, is_selected: bool, item: &SearchItem) -> ListIt
     let lines = vec![
         Line::from(vec![
             Span::styled(if is_selected { "› " } else { "  " }, title_style),
-            Span::styled(format!("{}/", owner), Style::default().fg(BORDER_COLOR)),
+            Span::styled(format!("{}/", owner), Style::default().fg(BORDER_COLOR())),
             Span::styled(repo.to_string(), title_style),
         ]),
         Line::from(vec![
             Span::raw("  "),
             Span::styled(
                 trimmed_desc,
-                Style::default().fg(FG_COLOR).add_modifier(Modifier::ITALIC),
+                Style::default().fg(FG_COLOR()).add_modifier(Modifier::ITALIC),
             ),
         ]),
         Line::from(meta_spans),
@@ -361,7 +361,7 @@ fn build_result_item(width: u16, is_selected: bool, item: &SearchItem) -> ListIt
 
     let item = ListItem::new(lines);
     if is_selected {
-        item.style(Style::default().bg(HIGHLIGHT_BG))
+        item.style(Style::default().bg(HIGHLIGHT_BG()))
     } else {
         item
     }

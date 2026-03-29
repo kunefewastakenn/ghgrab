@@ -54,10 +54,10 @@ pub fn render(f: &mut Frame, area: Rect, state: &BrowserState) {
             Block::default()
                 .borders(Borders::ALL)
                 .title(" Repository ")
-                .border_style(Style::default().fg(ACCENT_COLOR))
-                .style(Style::default().bg(BG_COLOR)),
+                .border_style(Style::default().fg(ACCENT_COLOR()))
+                .style(Style::default().bg(BG_COLOR())),
         )
-        .style(Style::default().fg(FG_COLOR).add_modifier(Modifier::BOLD));
+        .style(Style::default().fg(FG_COLOR()).add_modifier(Modifier::BOLD));
     f.render_widget(header, chunks[0]);
 
     fn format_size(size: u64) -> String {
@@ -85,26 +85,26 @@ pub fn render(f: &mut Frame, area: Rect, state: &BrowserState) {
     }
 
     let header_line = Line::from(vec![
-        Span::styled("    ", Style::default().bg(BORDER_COLOR)),
+        Span::styled("    ", Style::default().bg(BORDER_COLOR())),
         Span::styled(
             format!("{:<41}", "Name"),
             Style::default()
-                .fg(FG_COLOR)
+                .fg(FG_COLOR())
                 .add_modifier(Modifier::BOLD)
-                .bg(BORDER_COLOR),
+                .bg(BORDER_COLOR()),
         ),
-        Span::styled("  ", Style::default().bg(BORDER_COLOR)),
+        Span::styled("  ", Style::default().bg(BORDER_COLOR())),
         Span::styled(
             format!("{:<8}", "Type"),
             Style::default()
-                .fg(FG_COLOR)
+                .fg(FG_COLOR())
                 .add_modifier(Modifier::BOLD)
-                .bg(BORDER_COLOR),
+                .bg(BORDER_COLOR()),
         ),
-        Span::styled("  ", Style::default().bg(BORDER_COLOR)),
-        Span::styled("  ", Style::default().bg(BORDER_COLOR)),
+        Span::styled("  ", Style::default().bg(BORDER_COLOR())),
+        Span::styled("  ", Style::default().bg(BORDER_COLOR())),
     ]);
-    let header_item = ListItem::new(header_line).style(Style::default().bg(BORDER_COLOR));
+    let header_item = ListItem::new(header_line).style(Style::default().bg(BORDER_COLOR()));
 
     let mut all_items = vec![header_item];
 
@@ -141,20 +141,20 @@ pub fn render(f: &mut Frame, area: Rect, state: &BrowserState) {
             };
 
             let mark = if item.selected {
-                Span::styled("[●] ", Style::default().fg(SUCCESS_COLOR))
+                Span::styled("[●] ", Style::default().fg(SUCCESS_COLOR()))
             } else {
-                Span::styled("[ ] ", Style::default().fg(BORDER_COLOR))
+                Span::styled("[ ] ", Style::default().fg(BORDER_COLOR()))
             };
 
             let name_style = if is_selected {
                 Style::default()
-                    .fg(ACCENT_COLOR)
+                    .fg(ACCENT_COLOR())
                     .add_modifier(Modifier::BOLD)
-                    .bg(HIGHLIGHT_BG)
+                    .bg(HIGHLIGHT_BG())
             } else if item.is_dir() {
-                Style::default().fg(FOLDER_COLOR)
+                Style::default().fg(FOLDER_COLOR())
             } else {
-                Style::default().fg(FG_COLOR)
+                Style::default().fg(FG_COLOR())
             };
 
             let file_type = get_file_type(&item.name, item.is_dir());
@@ -205,15 +205,15 @@ pub fn render(f: &mut Frame, area: Rect, state: &BrowserState) {
                 Span::styled("  ", Style::default()),
                 Span::styled(
                     format!("{:<8}", file_type),
-                    Style::default().fg(WARNING_COLOR),
+                    Style::default().fg(WARNING_COLOR()),
                 ),
                 Span::styled("  ", Style::default()),
-                Span::styled(size_display, Style::default().fg(BORDER_COLOR)),
+                Span::styled(size_display, Style::default().fg(BORDER_COLOR())),
             ]);
 
             let item = ListItem::new(content);
             if is_selected {
-                item.style(Style::default().bg(HIGHLIGHT_BG))
+                item.style(Style::default().bg(HIGHLIGHT_BG()))
             } else {
                 item
             }
@@ -227,11 +227,11 @@ pub fn render(f: &mut Frame, area: Rect, state: &BrowserState) {
             .borders(Borders::ALL)
             .title(format!(" Files ({}) ", state.items.len()))
             .border_style(Style::default().fg(if state.is_downloading {
-                WARNING_COLOR
+                WARNING_COLOR()
             } else {
-                BORDER_COLOR
+                BORDER_COLOR()
             }))
-            .style(Style::default().bg(BG_COLOR)),
+            .style(Style::default().bg(BG_COLOR())),
     );
     f.render_widget(list, chunks[1]);
 
@@ -247,19 +247,19 @@ pub fn render(f: &mut Frame, area: Rect, state: &BrowserState) {
             Span::styled(
                 " ⬇ ",
                 Style::default()
-                    .fg(BG_COLOR)
-                    .bg(SUCCESS_COLOR)
+                    .fg(BG_COLOR())
+                    .bg(SUCCESS_COLOR())
                     .add_modifier(Modifier::BOLD),
             ),
             Span::styled(" ", Style::default()),
             Span::styled(
                 status_text,
                 Style::default()
-                    .fg(WARNING_COLOR)
+                    .fg(WARNING_COLOR())
                     .add_modifier(Modifier::BOLD),
             ),
         ]))
-        .style(Style::default().bg(BG_COLOR));
+        .style(Style::default().bg(BG_COLOR()));
         f.render_widget(status, chunks[2]);
     }
 
@@ -270,7 +270,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &BrowserState) {
             Block::default()
                 .borders(Borders::ALL)
                 .title(" Search ")
-                .border_style(Style::default().fg(SUCCESS_COLOR)),
+                .border_style(Style::default().fg(SUCCESS_COLOR())),
         );
         f.render_widget(search_bar, chunks[3]);
     }
@@ -280,93 +280,93 @@ pub fn render(f: &mut Frame, area: Rect, state: &BrowserState) {
         Span::styled(
             "j/k",
             Style::default()
-                .fg(ACCENT_COLOR)
+                .fg(ACCENT_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" Nav", Style::default().fg(BORDER_COLOR)),
-        Span::styled("  │  ", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" Nav", Style::default().fg(BORDER_COLOR())),
+        Span::styled("  │  ", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             "Enter",
             Style::default()
-                .fg(SUCCESS_COLOR)
+                .fg(SUCCESS_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" Open", Style::default().fg(BORDER_COLOR)),
-        Span::styled("  │  ", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" Open", Style::default().fg(BORDER_COLOR())),
+        Span::styled("  │  ", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             "Space",
             Style::default()
-                .fg(WARNING_COLOR)
+                .fg(WARNING_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" Select", Style::default().fg(BORDER_COLOR)),
-        Span::styled("  │  ", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" Select", Style::default().fg(BORDER_COLOR())),
+        Span::styled("  │  ", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             "a",
             Style::default()
-                .fg(FOLDER_COLOR)
+                .fg(FOLDER_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled("/", Style::default().fg(BORDER_COLOR)),
+        Span::styled("/", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             "u",
             Style::default()
-                .fg(FOLDER_COLOR)
+                .fg(FOLDER_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" All/None", Style::default().fg(BORDER_COLOR)),
-        Span::styled("  │  ", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" All/None", Style::default().fg(BORDER_COLOR())),
+        Span::styled("  │  ", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             "d",
             Style::default()
-                .fg(SUCCESS_COLOR)
+                .fg(SUCCESS_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" Download", Style::default().fg(BORDER_COLOR)),
-        Span::styled("  │  ", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" Download", Style::default().fg(BORDER_COLOR())),
+        Span::styled("  │  ", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             "p",
             Style::default()
-                .fg(WARNING_COLOR)
+                .fg(WARNING_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" Preview", Style::default().fg(BORDER_COLOR)),
-        Span::styled("  │  ", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" Preview", Style::default().fg(BORDER_COLOR())),
+        Span::styled("  │  ", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             "i",
             Style::default()
-                .fg(ACCENT_COLOR)
+                .fg(ACCENT_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" Icons", Style::default().fg(BORDER_COLOR)),
-        Span::styled("  │  ", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" Icons", Style::default().fg(BORDER_COLOR())),
+        Span::styled("  │  ", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             "←",
             Style::default()
-                .fg(ERROR_COLOR)
+                .fg(ERROR_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" Back", Style::default().fg(BORDER_COLOR)),
-        Span::styled("  │  ", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" Back", Style::default().fg(BORDER_COLOR())),
+        Span::styled("  │  ", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             "Esc",
             Style::default()
-                .fg(ACCENT_COLOR)
+                .fg(ACCENT_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" Home", Style::default().fg(BORDER_COLOR)),
-        Span::styled("  │  ", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" Home", Style::default().fg(BORDER_COLOR())),
+        Span::styled("  │  ", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             "q",
             Style::default()
-                .fg(ERROR_COLOR)
+                .fg(ERROR_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" Quit", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" Quit", Style::default().fg(BORDER_COLOR())),
         Span::styled("  ", Style::default()),
     ];
     let help = Paragraph::new(Line::from(help_spans))
         .alignment(ratatui::layout::Alignment::Center)
-        .style(Style::default().bg(BG_COLOR));
+        .style(Style::default().bg(BG_COLOR()));
     f.render_widget(help, chunks[4]);
 }

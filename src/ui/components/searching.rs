@@ -35,43 +35,43 @@ pub fn render(f: &mut Frame, area: Rect, frame_count: u64, status_msg: &str) {
         Line::from(Span::styled(
             "  ██████╗ ██╗  ██╗ ██████╗ ██████╗  █████╗ ██████╗ ",
             Style::default()
-                .fg(ACCENT_COLOR)
+                .fg(ACCENT_COLOR())
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::styled(
             " ██╔════╝ ██║  ██║██╔════╝ ██╔══██╗██╔══██╗██╔══██╗",
             Style::default()
-                .fg(ACCENT_COLOR)
+                .fg(ACCENT_COLOR())
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::styled(
             " ██║  ███╗███████║██║  ███╗██████╔╝███████║██████╔╝",
             Style::default()
-                .fg(ACCENT_COLOR)
+                .fg(ACCENT_COLOR())
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::styled(
             " ██║   ██║██╔══██║██║   ██║██╔══██╗██╔══██║██╔══██╗",
             Style::default()
-                .fg(ACCENT_COLOR)
+                .fg(ACCENT_COLOR())
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::styled(
             " ╚██████╔╝██║  ██║╚██████╔╝██║  ██║██║  ██║██████╔╝",
             Style::default()
-                .fg(ACCENT_COLOR)
+                .fg(ACCENT_COLOR())
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::styled(
             "  ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ",
             Style::default()
-                .fg(ACCENT_COLOR)
+                .fg(ACCENT_COLOR())
                 .add_modifier(Modifier::BOLD),
         )),
     ];
     let header = Paragraph::new(header_lines)
         .alignment(Alignment::Center)
-        .style(Style::default().bg(BG_COLOR));
+        .style(Style::default().bg(BG_COLOR()));
     f.render_widget(header, header_area[1]);
 
     let msg = if status_msg.is_empty() {
@@ -81,10 +81,10 @@ pub fn render(f: &mut Frame, area: Rect, frame_count: u64, status_msg: &str) {
     };
     let status = Paragraph::new(Span::styled(
         msg,
-        Style::default().fg(FG_COLOR).add_modifier(Modifier::ITALIC),
+        Style::default().fg(FG_COLOR()).add_modifier(Modifier::ITALIC),
     ))
     .alignment(Alignment::Center)
-    .style(Style::default().bg(BG_COLOR));
+    .style(Style::default().bg(BG_COLOR()));
     f.render_widget(status, vertical_layout[2]);
 
     // Spinner Animation
@@ -104,14 +104,14 @@ pub fn render(f: &mut Frame, area: Rect, frame_count: u64, status_msg: &str) {
     let spinner = Paragraph::new(Span::styled(
         spinner_char,
         Style::default()
-            .fg(ACCENT_COLOR)
+            .fg(ACCENT_COLOR())
             .add_modifier(Modifier::BOLD),
     ))
     .alignment(Alignment::Center)
     .block(
         Block::default()
             .borders(Borders::NONE)
-            .style(Style::default().bg(BG_COLOR)),
+            .style(Style::default().bg(BG_COLOR())),
     );
     f.render_widget(spinner, spinner_area[1]);
 }

@@ -490,7 +490,7 @@ async fn event_loop(
                 let size = f.size();
                 f.render_widget(
                     ratatui::widgets::Block::default()
-                        .style(ratatui::style::Style::default().bg(theme::BG_COLOR)),
+                        .style(ratatui::style::Style::default().bg(theme::BG_COLOR())),
                     size,
                 );
 

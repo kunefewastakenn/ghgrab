@@ -68,10 +68,10 @@ pub fn render(f: &mut Frame, area: Rect, toast: &Toast) {
     let toast_area = rects_rows[1];
 
     let (icon, color, title) = match toast.toast_type {
-        ToastType::Info => ("ℹ", ACCENT_COLOR, "Info"),
-        ToastType::Success => ("✓", SUCCESS_COLOR, "Success"),
-        ToastType::Error => ("✕", ERROR_COLOR, "Error"),
-        ToastType::Warning => ("⚠", WARNING_COLOR, "Warning"),
+        ToastType::Info => ("ℹ", ACCENT_COLOR(), "Info"),
+        ToastType::Success => ("✓", SUCCESS_COLOR(), "Success"),
+        ToastType::Error => ("✕", ERROR_COLOR(), "Error"),
+        ToastType::Warning => ("⚠", WARNING_COLOR(), "Warning"),
     };
 
     let block = Block::default()
@@ -81,12 +81,12 @@ pub fn render(f: &mut Frame, area: Rect, toast: &Toast) {
             format!(" {} {} ", icon, title),
             Style::default().fg(color).add_modifier(Modifier::BOLD),
         ))
-        .style(Style::default().bg(BG_COLOR));
+        .style(Style::default().bg(BG_COLOR()));
 
     let text = Paragraph::new(toast.message.as_str())
         .block(block)
         .wrap(Wrap { trim: true })
-        .style(Style::default().fg(FG_COLOR));
+        .style(Style::default().fg(FG_COLOR()));
 
     f.render_widget(Clear, toast_area);
     f.render_widget(text, toast_area);

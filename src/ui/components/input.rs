@@ -44,52 +44,52 @@ pub fn render(
         Line::from(Span::styled(
             "  ██████╗ ██╗  ██╗ ██████╗ ██████╗  █████╗ ██████╗ ",
             Style::default()
-                .fg(ACCENT_COLOR)
+                .fg(ACCENT_COLOR())
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::styled(
             " ██╔════╝ ██║  ██║██╔════╝ ██╔══██╗██╔══██╗██╔══██╗",
             Style::default()
-                .fg(ACCENT_COLOR)
+                .fg(ACCENT_COLOR())
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::styled(
             " ██║  ███╗███████║██║  ███╗██████╔╝███████║██████╔╝",
             Style::default()
-                .fg(ACCENT_COLOR)
+                .fg(ACCENT_COLOR())
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::styled(
             " ██║   ██║██╔══██║██║   ██║██╔══██╗██╔══██║██╔══██╗",
             Style::default()
-                .fg(ACCENT_COLOR)
+                .fg(ACCENT_COLOR())
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::styled(
             " ╚██████╔╝██║  ██║╚██████╔╝██║  ██║██║  ██║██████╔╝",
             Style::default()
-                .fg(ACCENT_COLOR)
+                .fg(ACCENT_COLOR())
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::styled(
             "  ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ",
             Style::default()
-                .fg(ACCENT_COLOR)
+                .fg(ACCENT_COLOR())
                 .add_modifier(Modifier::BOLD),
         )),
     ];
     let header = Paragraph::new(header_lines)
         .alignment(Alignment::Center)
-        .style(Style::default().bg(BG_COLOR));
+        .style(Style::default().bg(BG_COLOR()));
     f.render_widget(header, header_area[1]);
 
     let desc_text = Line::from(Span::styled(
         "Download any file or folder from GitHub. No full clones. Just what you need.",
-        Style::default().fg(FG_COLOR).add_modifier(Modifier::ITALIC),
+        Style::default().fg(FG_COLOR()).add_modifier(Modifier::ITALIC),
     ));
     let desc = Paragraph::new(desc_text)
         .alignment(Alignment::Center)
-        .style(Style::default().bg(BG_COLOR));
+        .style(Style::default().bg(BG_COLOR()));
     f.render_widget(desc, vertical_layout[2]);
 
     let input_area = Layout::default()
@@ -104,21 +104,21 @@ pub fn render(
     let display_content = if input_text.is_empty() {
         if cursor_visible {
             Line::from(vec![
-                Span::styled("_", Style::default().fg(FG_COLOR)),
+                Span::styled("_", Style::default().fg(FG_COLOR())),
                 Span::styled(
                     " (Press Tab to auto-fill GitHub URL)",
                     Style::default()
-                        .fg(BORDER_COLOR)
+                        .fg(BORDER_COLOR())
                         .add_modifier(Modifier::ITALIC),
                 ),
             ])
         } else {
             Line::from(vec![
-                Span::styled(" ", Style::default().fg(FG_COLOR)),
+                Span::styled(" ", Style::default().fg(FG_COLOR())),
                 Span::styled(
                     " (Press Tab to auto-fill GitHub URL)",
                     Style::default()
-                        .fg(BORDER_COLOR)
+                        .fg(BORDER_COLOR())
                         .add_modifier(Modifier::ITALIC),
                 ),
             ])
@@ -148,13 +148,13 @@ pub fn render(
                 .title(Span::styled(
                     " Enter GitHub URL or Search ",
                     Style::default()
-                        .fg(ACCENT_COLOR)
+                        .fg(ACCENT_COLOR())
                         .add_modifier(Modifier::BOLD),
                 ))
-                .border_style(Style::default().fg(ACCENT_COLOR))
-                .style(Style::default().bg(BG_COLOR)),
+                .border_style(Style::default().fg(ACCENT_COLOR()))
+                .style(Style::default().bg(BG_COLOR())),
         )
-        .style(Style::default().fg(FG_COLOR));
+        .style(Style::default().fg(FG_COLOR()));
     f.render_widget(input, input_area[1]);
 
     let instructions_area = Layout::default()
@@ -171,31 +171,31 @@ pub fn render(
             Span::styled(
                 "Examples",
                 Style::default()
-                    .fg(SUCCESS_COLOR)
+                    .fg(SUCCESS_COLOR())
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::styled("  (paste any of these):", Style::default().fg(FG_COLOR)),
+            Span::styled("  (paste any of these):", Style::default().fg(FG_COLOR())),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("  1. ", Style::default().fg(BORDER_COLOR)),
+            Span::styled("  1. ", Style::default().fg(BORDER_COLOR())),
             Span::styled(
                 "https://github.com/abhixdd/ghgrab",
-                Style::default().fg(ACCENT_COLOR),
+                Style::default().fg(ACCENT_COLOR()),
             ),
         ]),
         Line::from(vec![
-            Span::styled("  2. ", Style::default().fg(BORDER_COLOR)),
+            Span::styled("  2. ", Style::default().fg(BORDER_COLOR())),
             Span::styled(
                 "https://github.com/rust-lang/rust/tree/master/src/tools",
-                Style::default().fg(ACCENT_COLOR),
+                Style::default().fg(ACCENT_COLOR()),
             ),
         ]),
         Line::from(vec![
-            Span::styled("  3. ", Style::default().fg(BORDER_COLOR)),
+            Span::styled("  3. ", Style::default().fg(BORDER_COLOR())),
             Span::styled(
                 "https://github.com/user/repo/tree/main/specific-folder",
-                Style::default().fg(ACCENT_COLOR),
+                Style::default().fg(ACCENT_COLOR()),
             ),
         ]),
         Line::from(""),
@@ -203,12 +203,12 @@ pub fn render(
             Span::styled(
                 "Tip: ",
                 Style::default()
-                    .fg(WARNING_COLOR)
+                    .fg(WARNING_COLOR())
                     .add_modifier(Modifier::BOLD),
             ),
             Span::styled(
                 "Works with any public or private GitHub repository",
-                Style::default().fg(FG_COLOR).add_modifier(Modifier::ITALIC),
+                Style::default().fg(FG_COLOR()).add_modifier(Modifier::ITALIC),
             ),
         ]),
     ];
@@ -218,8 +218,8 @@ pub fn render(
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(BORDER_COLOR))
-                .style(Style::default().bg(BG_COLOR)),
+                .border_style(Style::default().fg(BORDER_COLOR()))
+                .style(Style::default().bg(BG_COLOR())),
         )
         .wrap(Wrap { trim: false });
     f.render_widget(info, instructions_area[1]);
@@ -238,22 +238,22 @@ pub fn render(
         Span::styled(
             "Enter",
             Style::default()
-                .fg(SUCCESS_COLOR)
+                .fg(SUCCESS_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" - Start", Style::default().fg(FG_COLOR)),
-        Span::styled("     |     ", Style::default().fg(BORDER_COLOR)),
+        Span::styled(" - Start", Style::default().fg(FG_COLOR())),
+        Span::styled("     |     ", Style::default().fg(BORDER_COLOR())),
         Span::styled(
             "ESC",
             Style::default()
-                .fg(ERROR_COLOR)
+                .fg(ERROR_COLOR())
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" - Quit", Style::default().fg(FG_COLOR)),
+        Span::styled(" - Quit", Style::default().fg(FG_COLOR())),
     ])];
     let controls_widget = Paragraph::new(controls)
         .alignment(Alignment::Center)
-        .style(Style::default().bg(BG_COLOR));
+        .style(Style::default().bg(BG_COLOR()));
     f.render_widget(controls_widget, controls_area[1]);
 
     // Status Bar
@@ -264,7 +264,7 @@ pub fn render(
             .split(area);
 
         let status = Paragraph::new(format!(" {}", status_msg))
-            .style(Style::default().fg(ERROR_COLOR).bg(BG_COLOR));
+            .style(Style::default().fg(ERROR_COLOR()).bg(BG_COLOR()));
         f.render_widget(status, status_area[1]);
     }
 }

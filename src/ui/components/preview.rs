@@ -20,8 +20,8 @@ pub fn render(f: &mut Frame, area: Rect, state: PreviewState) {
     let block = Block::default()
         .borders(Borders::ALL)
         .title(format!(" Preview: {} ", state.path))
-        .border_style(Style::default().fg(ACCENT_COLOR))
-        .style(Style::default().bg(BG_COLOR));
+        .border_style(Style::default().fg(ACCENT_COLOR()))
+        .style(Style::default().bg(BG_COLOR()));
 
     let popup_area = centered_rect(80, 80, area);
     f.render_widget(Clear, popup_area);
@@ -31,7 +31,7 @@ pub fn render(f: &mut Frame, area: Rect, state: PreviewState) {
 
     if state.loading {
         let loading_text = Paragraph::new("Loading preview...")
-            .style(Style::default().fg(WARNING_COLOR))
+            .style(Style::default().fg(WARNING_COLOR()))
             .alignment(Alignment::Center);
 
         let vertical_center = Layout::default()
@@ -46,7 +46,7 @@ pub fn render(f: &mut Frame, area: Rect, state: PreviewState) {
         f.render_widget(loading_text, vertical_center);
     } else if state.is_image {
         let msg = Paragraph::new("Image preview is not supported in the terminal.\nUse a local image viewer to open this file.")
-            .style(Style::default().fg(WARNING_COLOR))
+            .style(Style::default().fg(WARNING_COLOR()))
             .alignment(Alignment::Center);
 
         let vertical_center = Layout::default()
@@ -69,7 +69,7 @@ pub fn render(f: &mut Frame, area: Rect, state: PreviewState) {
         let footer_hint = Line::from(vec![Span::styled(
             " (Showing first 16KB - Press ESC to close) ",
             Style::default()
-                .fg(BORDER_COLOR)
+                .fg(BORDER_COLOR())
                 .add_modifier(Modifier::ITALIC),
         )]);
 
